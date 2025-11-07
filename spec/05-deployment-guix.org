@@ -11,7 +11,7 @@ Dev окружение
 - guix/package.scm — пакет emacs-gnu-lab (MUST):
   - build-system: emacs-build-system
   - inputs: coreutils, util-linux (для scripts), опционально bubblewrap
-  - лицензия: GPL-3.0-or-later
+  - лицензия: GPL-2.1-or-later
 
 Сервис
 - guix/service.scm — shepherd-сервис (MUST):
