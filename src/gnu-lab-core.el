@@ -1,6 +1,7 @@
 ;;; gnu-lab-core.el --- Core loop and interpreter  -*- lexical-binding: t; -*-
 
 (require 'json)
+(require 'cl-lib)
 (load "gnu-lab-effects.el")
 (load "gnu-lab-config.el")
 (load "gnu-lab-logger.el")

@@ -7,7 +7,9 @@
         "util-linux"
         "curl"
         "guile"
+        "guix"
         "git"
         "bubblewrap"
         "sqlite"
-        "make")))
+        "make"
+        "emacs-package-lint")))

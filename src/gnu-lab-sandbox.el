@@ -1,5 +1,6 @@
 ;;; gnu-lab-sandbox.el --- Sandbox process runner  -*- lexical-binding: t; -*-
 
+(require 'subr-x)
 (load "gnu-lab-config.el")
 
 (defun gnu-lab-sandbox--parse-output (buf)

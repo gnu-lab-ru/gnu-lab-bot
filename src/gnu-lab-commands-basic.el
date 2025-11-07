@@ -2,6 +2,7 @@
 
 (load "gnu-lab-effects.el")
 (load "gnu-lab-commands.el")
+(load "gnu-lab-config.el")
 
 (defun gnu-lab--reply (event text)
   (list (fx-reply :chat-id (plist-get event :chat-id) :text text)))
@@ -21,7 +22,7 @@
   (gnu-lab--reply event "pong"))
 
 (defun gnu-lab-cmd-version (event _args)
-  (gnu-lab--reply event "Мастерская Emacs бот — протокол 1.0"))
+  (gnu-lab--reply event (format "Мастерская Emacs бот — протокол %s" (gnu-lab-config-get 'protocol-version "1.0"))))
 
 (defun gnu-lab-register-basic-commands ()
   (defcommand "start" :doc "Приветствие" :args nil :roles '(:user) :handler #'gnu-lab-cmd-start)

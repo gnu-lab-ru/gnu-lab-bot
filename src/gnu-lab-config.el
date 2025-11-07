@@ -8,6 +8,7 @@
     ('eval-mem-mb (string-to-number (or (getenv "EVAL_MEM_MB") "128")))
     ('eval-out-bytes (string-to-number (or (getenv "EVAL_OUT_BYTES") "8192")))
     ('log-level (intern (or (getenv "LOG_LEVEL") "info")))
+    ('protocol-version (or (getenv "PROTOCOL_VERSION") "1.0"))
     (_ default)))
 
 (provide 'gnu-lab-config)

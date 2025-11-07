@@ -9,6 +9,7 @@
 Работа с LLM
 - Сначала уточнить контракт в spec/*, затем генерировать код (MUST).
 - PR от LLM MUST включать ERT-тесты.
+- PR от LLM MUST проходить make lint и make test в окружении Guix (guix shell -m guix/shell.scm) без ошибок.
 - Нельзя добавлять новые типы Effect/Event без обновления spec/03 и PROTOCOL_VERSION (MUST).
 - Безопасность: любые изменения песочницы — обновление spec/04 и тестов (MUST).
 

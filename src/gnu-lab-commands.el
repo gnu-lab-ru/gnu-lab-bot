@@ -1,5 +1,8 @@
 ;;; gnu-lab-commands.el --- Command DSL and dispatch  -*- lexical-binding: t; -*-
 
+(require 'cl-lib)
+(require 'subr-x)
+
 (defvar gnu-lab--commands (make-hash-table :test 'equal))
 
 (cl-defun defcommand (name &key doc args roles rate-limit handler)
@@ -10,8 +13,10 @@
 (defun gnu-lab--extract-cmd (text)
   (when (and (stringp text) (string-prefix-p "/" text))
     (let* ((parts (split-string text "[ \n]" t))
-           (name (car parts))
-           (args (string-trim (substring text (min (length text) (length name))))))
+           (token (car parts))
+           (at-pos (and token (string-match-p "@" token)))
+           (name (if at-pos (substring token 0 at-pos) token))
+           (args (string-trim (substring text (min (length text) (length token))))))
       (list name args))))
 
 (defun gnu-lab-dispatch-command (event)
@@ -21,7 +26,10 @@
          (args (and pair (cadr pair)))
          (spec (and cmd (gethash cmd gnu-lab--commands))))
     (if (not spec)
-        (list (fx-log :level :warn :data `(:msg "unknown command" :cmd ,cmd)))
+        (list
+         (fx-log :level :warn :data `(:msg "unknown command" :cmd ,cmd))
+         (fx-reply :chat-id (plist-get event :chat-id)
+                   :text "Неизвестная команда. Используйте /help"))
       (let ((handler (plist-get spec :handler)))
         (funcall handler event args)))))
 

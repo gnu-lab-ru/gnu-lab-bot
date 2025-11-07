@@ -1,6 +1,7 @@
 ;;; gnu-lab-boot.el --- Entry point  -*- lexical-binding: t; -*-
 
 ;; This file is the entry script for running the bot in batch mode.
+(require 'subr-x)
 
 (load (expand-file-name "gnu-lab-config.el" (file-name-directory load-file-name)))
 (load (expand-file-name "gnu-lab-logger.el" (file-name-directory load-file-name)))

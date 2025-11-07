@@ -10,7 +10,8 @@
     (pcase type
       (:reply (and (integerp (plist-get fx :chat-id))
                    (stringp (plist-get fx :text))))
-      (:run-sandbox (and (stringp (plist-get fx :expr))
+      (:run-sandbox (and (integerp (plist-get fx :chat-id))
+                         (stringp (plist-get fx :expr))
                          (plist-get fx :limits)))
       (:store (and (symbolp (plist-get fx :key))))
       (:log (and (memq (plist-get fx :level) '(:info :warn :error))

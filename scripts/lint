@@ -1,0 +1,78 @@
+#!/bin/sh
+# Unified linter for Emacs Lisp and Scheme/Guix
+set -eu
+
+# Discover files
+EL_FILES="$(find src test -maxdepth 1 -type f -name '*.el' 2>/dev/null | tr '\n' ' ')"
+SCM_FILES="$(find guix -maxdepth 1 -type f -name '*.scm' 2>/dev/null | tr '\n' ' ')"
+
+STATUS=0
+fail() { STATUS=1; }
+
+echo "=== Elisp: byte-compile ==="
+if [ -n "${EL_FILES:-}" ]; then
+  # Treat warnings as errors if LINT_STRICT is set
+  if ! emacs -Q --batch -L src \
+      --eval "(setq byte-compile-error-on-warn (if (getenv \"LINT_STRICT\") t nil))" \
+      -f batch-byte-compile ${EL_FILES}; then
+    echo "[byte-compile] non-zero exit" >&2
+    fail
+  fi
+else
+  echo "No .el files found"
+fi
+
+echo "=== Elisp: checkdoc ==="
+if [ -n "${EL_FILES:-}" ]; then
+  if ! emacs -Q --batch -L src -l scripts/elisp-checkdoc-batch.el ${EL_FILES}; then
+    echo "[checkdoc] issues found" >&2
+    fail
+  fi
+fi
+
+echo "=== Elisp: package-lint ==="
+if [ -n "${EL_FILES:-}" ]; then
+  if ! emacs -Q --batch -L src -l package-lint --eval '(package-lint-batch-and-exit)' ${EL_FILES}; then
+    echo "[package-lint] issues (or package-lint not available)" >&2
+    fail
+  fi
+fi
+
+echo "=== Scheme: guild compile ==="
+if [ -n "${SCM_FILES:-}" ]; then
+  for f in ${SCM_FILES}; do
+    echo "-- guild compile $f"
+    if ! guild compile -L . -L guix "$f"; then
+      echo "[guild] compile failed: $f" >&2
+      fail
+    fi
+  done
+else
+  echo "No .scm files found"
+fi
+
+echo "=== Guix: style (dry-run) ==="
+if command -v guix >/dev/null 2>&1; then
+  if [ -d guix ]; then
+    guix style -n guix || true
+  fi
+else
+  echo "guix not found; skip style"
+fi
+
+echo "=== Guix: lint package emacs-gnu-lab ==="
+if command -v guix >/dev/null 2>&1; then
+  if [ -f guix/package.scm ]; then
+    if ! guix lint -L guix emacs-gnu-lab; then
+      echo "[guix lint] issues" >&2
+      fail
+    fi
+  else
+    echo "guix/package.scm not found; skip guix lint"
+  fi
+else
+  echo "guix not found; skip guix lint"
+fi
+
+echo "=== Done ==="
+exit $STATUS

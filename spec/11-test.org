@@ -14,3 +14,8 @@
 Инварианты
 - Любой handler — pure (MUST).
 - Все эффекты — валидны до исполнения (MUST).
+
+Линтинг
+- Инструменты (MUST): byte-compile (с byte-compile-error-on-warn в CI), checkdoc, package-lint; для Scheme: guild compile; для Guix: guix lint, guix style -n.
+- Единая команда (MUST): make lint (или guix shell -m guix/shell.scm -- scripts/lint) печатает агрегированный отчёт и возвращает суммарный статус.
+- Ветка CI (SHOULD): make ci (строгий режим — варнинги как ошибки, линт + тесты).

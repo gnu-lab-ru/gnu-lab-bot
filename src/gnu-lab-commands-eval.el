@@ -1,5 +1,7 @@
 ;;; gnu-lab-commands-eval.el --- Secure eval command  -*- lexical-binding: t; -*-
 
+(require 'cl-lib)
+(require 'subr-x)
 (load "gnu-lab-effects.el")
 (load "gnu-lab-commands.el")
 (load "gnu-lab-config.el")
@@ -43,7 +45,8 @@
                       :cpu-sec ,(gnu-lab-config-get 'eval-cpu-sec nil)
                       :mem-mb ,(gnu-lab-config-get 'eval-mem-mb nil)
                       :out-bytes ,(gnu-lab-config-get 'eval-out-bytes nil))))
-        (list (fx-run-sandbox :expr expr :limits limits))))))
+        (list (fx-run-sandbox :chat-id (plist-get event :chat-id)
+                              :expr expr :limits limits))))))
 
 (defun gnu-lab-register-eval-command ()
   (defcommand "eval" :doc "Безопасный eval в песочнице" :args '((:name expr :type string :required t))
