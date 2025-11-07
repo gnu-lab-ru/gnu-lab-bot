@@ -1,0 +1,19 @@
+Telegram API (MVP)
+
+Получение обновлений
+- Метод: getUpdates (MUST)
+  - offset (MUST), timeout=30 (SHOULD).
+- После успешной обработки update_id — сохранить offset через Effect :store (MUST).
+
+Отправка сообщений
+- sendMessage (MUST)
+  - parse_mode: Markdown или Plain (SHOULD)
+  - Длина ≤ 4096; бот обрезает до 4000 и помечает «…» (MUST).
+
+Команды
+- Распознавание "/name@our_bot [args]" (MUST).
+- Для /eval — вся оставшаяся строка — expr (MUST).
+
+Обработка ошибок и бэкофф
+- Экспоненциальный бэкофф: старт 0.5s, максимум 8s (SHOULD).
+- Логирование E_TELEGRAM (MUST).

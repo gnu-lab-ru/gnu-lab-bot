@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+
+if [ "${TELEGRAM_BOT_TOKEN:-}" = "" ]; then
+  echo "[warn] TELEGRAM_BOT_TOKEN is not set. Transport will not start. Running dry boot..."
+fi
+
+exec emacs -Q --script src/gnu-lab-boot.el

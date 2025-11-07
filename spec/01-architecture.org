@@ -1,0 +1,34 @@
+Архитектура
+
+Модель портов/адаптеров
+- Ядро (MUST): чистая функция handle-event(Event) → [Effect].
+- Интерпретатор (MUST): исполняет эффекты и только эффекты.
+- Порты (MUST): Transport (Telegram), Sandbox (eval), Storage (state), Logger, Config.
+
+Событийная модель
+- Нормализованный Event описан в spec/03-protocols.org.
+- Разбор команд и диспетчеризация — в src/gnu-lab-commands.el (см. spec/02-modules.org).
+
+Эффекты
+- DSL эффектов, конструкторы/валидаторы — src/gnu-lab-effects.el (см. spec/02-modules.org).
+- Интерпретация: отправка ответов, запуск песочницы, запись offset, логирование.
+
+Конкурентность
+- MVP: однопоточный long polling Telegram (SHOULD).
+- Параллелизм по эффектам — вне MVP (см. spec/09-roadmap.org).
+
+Конфигурация и секреты
+- Только через env/файлы (MUST). См. src/gnu-lab-config.el и spec/05-deployment-guix.org.
+
+Наблюдаемость
+- Структурированные логи (MUST), уровни: info/warn/error; метрики — через логи (SHOULD). См. src/gnu-lab-logger.el.
+
+Безопасность
+- Политики и песочница — spec/04-security.org; реализация — src/gnu-lab-sandbox.el.
+
+Расширяемость
+- Новые команды/транспорты/хранилища — см. spec/07-extensibility.org.
+- Версионирование протокола — spec/03-protocols.org.
+
+Развёртывание
+- Guix manifest, пакет, сервис, deploy — spec/05-deployment-guix.org.

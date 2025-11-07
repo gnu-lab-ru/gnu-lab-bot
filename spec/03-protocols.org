@@ -1,0 +1,49 @@
+Протоколы и командный DSL
+
+Версионирование
+- PROTOCOL_VERSION = 1.0 (MUST). Несовместимые изменения — bump major (MUST).
+
+Event (plist)
+- :kind :tg/message (MVP)
+- :chat-id int (MUST)
+- :message-id int (MUST)
+- :from-id int (MUST)
+- :from-username string|nil (SHOULD)
+- :text string|nil (SHOULD)
+- :timestamp int (SHOULD)
+- :thread-id int|nil (MAY)
+- :entities list|nil (MAY)
+
+Effect (plist, одно действие)
+- :reply (MUST)
+  - :chat-id int (MUST)
+  - :thread-id int|nil (MAY)
+  - :text string ≤ 4000 (MUST)
+  - :parse-mode :plain|:markdown (SHOULD)
+- :run-sandbox (MUST)
+  - :expr string (MUST)
+  - :limits plist {:timeout-sec int :cpu-sec int :mem-mb int :out-bytes int} (MUST)
+- :store (MUST)
+  - :key symbol, :value any (MUST)
+- :log (MUST)
+  - :level :info|:warn|:error (MUST)
+  - :data plist (MUST)
+
+Командный DSL
+- defcommand name :doc :args :roles :rate-limit :handler (MUST).
+- :args — список plist:
+  - :name symbol (MUST)
+  - :type 'string|'int|… (MUST)
+  - :required t|nil (MUST)
+- :roles — '(:owner :user …) (SHOULD).
+- :rate-limit — plist (MAY): {:per-user int :per-chat int :window-sec int}.
+
+Правила
+- Handler MUST быть pure: Event → [Effect].
+- Любой Effect MUST валидироваться перед исполнением.
+- Неизвестный тип эффекта → ошибка E_EFFECT_UNKNOWN.
+
+Парсинг команд
+- Сообщение: "/name[@bot] [args...]".
+- Для /eval: весь хвост после имени — один аргумент expr (MUST).
+- Игнорировать лишние пробелы и переносы (SHOULD).

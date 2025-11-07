@@ -1,0 +1,37 @@
+Безопасность и песочница
+
+Цели
+- Гарантировать, что /eval не может обратиться к сети/процессам/ФС, выйти за лимиты CPU/памяти/времени, либо обойти статическую валидацию.
+
+Чтение и валидация выражений
+- read-from-string при динамическом bind read-eval=nil (MUST) — запрещает #. и др. reader-eval.
+- AST-валидация (MUST):
+  - Допустимые спецформы: quote, if, cond, when, unless, let, let*, progn, lambda, and, or.
+  - Допустимые функции (примерный whitelist): + - * /, = /= < <= > >=, eq eql equal, cons car cdr caar cadr cdar cddr list append length nth mapcar apply funcall format concat substring string-match replace-regexp-in-string vector aref elt numberp stringp symbolp listp null not.
+  - Запрещено (MUST): require, load, eval, compile, defun, defmacro, defvar, defcustom, setf, setq (в MVP), call-process, start-process, shell-command, process-*, file-*, url-*, make-network-process, advice-*, symbol-function, fset, intern, obarray, network-*.
+  - funcall/apply разрешены только если callee — символ из whitelist (MUST).
+  - Ограничения структуры (MUST): глубина ≤ 64; узлов ≤ 2000.
+- Ошибки валидации → E_DENY.
+
+Песочница выполнения
+- Запуск (MUST): guix shell --container (без опции --network используется изоляция сети) с пакетами emacs-minimal coreutils util-linux; внутри — emacs -Q --batch.
+- Лимиты (MUST, конфигурируемые через env):
+  - timeout-sec (по умолчанию 2)
+  - cpu-sec (ulimit -t, по умолчанию 2)
+  - mem-mb (ulimit/prlimit, по умолчанию 128)
+  - out-bytes (обрезка stdout, по умолчанию 8192)
+- Рабочий каталог (MUST): временный tmpdir; удаляется по завершении.
+- Результат (MUST): {:ok bool :stdout :stderr :status :timeout-p}.
+
+Правила общения («робототехника»)
+- Запрещён вредный/незаконный контент: отказ с E_POLICY (MUST).
+- Мед/юридические советы — отказ/предупреждение (SHOULD).
+- Приватность: не отправлять приватные данные во внешние API; LLM отключён (MUST).
+
+Rate limits
+- Дефолты (SHOULD): per-user 5/мин, per-chat 20/мин, window-sec 60.
+- Нарушения → E_RATE.
+
+Логирование и ошибки
+- Коды (MUST): E_PARSE, E_DENY, E_TIMEOUT, E_OOM, E_SANDBOX, E_TELEGRAM, E_RATE, E_EFFECT_UNKNOWN, E_POLICY, E_INTERNAL.
+- Санитизация логов (MUST): не логировать токены, приватные payload.

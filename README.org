@@ -1,0 +1,35 @@
+Мастерская Emacs — бот (MVP) для Telegram
+
+Кратко
+- Назначение: Telegram-бот сообщества «Мастерская Emacs» с чисто-функциональной архитектурой, безопасным eval Emacs Lisp, развёртыванием на Guix.
+- Статус: MVP-спецификация и каркас кода. См. spec/.
+- Язык спецификаций: русский. Нормативные слова MUST/SHOULD/MAY — в смысле RFC 2119.
+
+Быстрый старт (dev)
+1) Установите Guix и выполните:
+   guix shell -m guix/shell.scm
+2) Экспортируйте токен телеграм-бота (обязателен для реального запуска long-poll):
+   export TELEGRAM_BOT_TOKEN="123456:ABC..."
+3) Запустите бота:
+   ./scripts/run-bot
+
+Развёртывание (prod)
+- Пакет, сервис Shepherd, примеры для Guix System и guix deploy — см. spec/05-deployment-guix.org и каталог guix/.
+
+Документация
+- Философия/цели: spec/00-philosophy.org
+- Архитектура и протоколы: spec/01-architecture.org, spec/03-protocols.org
+- Безопасность и песочница: spec/04-security.org
+- Telegram API и маппинг: spec/06-api-telegram.org
+- Расширяемость и стиль LLM: spec/07-extensibility.org, spec/08-style-llm.org
+- Дорожная карта и приватность: spec/09-roadmap.org, spec/10-privacy.org
+- Тесты: spec/11-test.org
+
+Состояние MVP
+- Только Telegram.
+- Команды: /start, /help, /ping, /version, /eval (в песочнице).
+- Хранение: только offset (файл state/telegram.offset).
+- Логи: stdout, структурированные.
+
+Лицензии
+- Код: GPL-3.0-or-later (см. LICENSE).

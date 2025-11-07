@@ -1,0 +1,50 @@
+Модули и публичные API
+
+gnu-lab-core.el (ядро)
+- gnu-lab/run (impure): инициализация портов, запуск цикла транспорта.
+- gnu-lab/handle-event (pure): Event → [Effect].
+- gnu-lab/perform-effects (impure): интерпретация Effect.
+
+gnu-lab-effects.el (DSL эффектов)
+- Конструкторы: fx-reply, fx-run-sandbox, fx-store, fx-log.
+- Валидация: gnu-lab-fx/valid-p (MUST проверять тип/обязательные поля).
+
+gnu-lab-commands.el (DSL команд)
+- defcommand name :doc :args :roles :rate-limit :handler — регистрация.
+- gnu-lab/dispatch-command (pure): Event → [Effect] через вызов handler.
+- Реестр команд (MUST): ассоциативная таблица name→spec/handler.
+
+gnu-lab-commands-basic.el (базовые)
+- /start, /help, /ping, /version — чистые обработчики (MUST).
+- Инициализация: функция, регистрирующая команды (MUST).
+
+gnu-lab-commands-eval.el (eval)
+- gnu-lab-safe-elisp-p (pure): статическая валидация AST (MUST).
+- Handler /eval: подготовка Effect :run-sandbox с лимитами, добавление :log (MUST).
+
+gnu-lab-sandbox.el (песочница)
+- sandbox-run-elisp expr limits → plist {:ok bool :stdout :stderr :status :timeout-p} (MUST).
+- Вызов внешнего scripts/eval-sandbox (MUST).
+
+gnu-lab-telegram.el (транспорт)
+- telegram-longpoll-loop callback (MUST): getUpdates → Event → callback → perform Effects.
+- telegram-send (MUST): Effect :reply → sendMessage.
+- Нормализация Update→Event, Effect→API (MUST).
+
+gnu-lab-storage.el (хранилище)
+- storage-get key → value|nil; storage-set key value (MUST).
+- storage-last-offset, storage-save-offset (MUST).
+- MVP: файловая реализация.
+
+gnu-lab-config.el (конфиги)
+- config-get key default (MUST).
+- Источник: env/файлы; дефолты для лимитов (MUST).
+
+gnu-lab-logger.el (логи)
+- log-info, log-warn, log-error (MUST) — единый формат.
+
+gnu-lab-boot.el (вход)
+- gnu-lab-main (MUST): загрузка модулей, запуск глоупа.
+
+test/*.el
+- Юнит/контракт-тесты (MUST), см. spec/11-test.org.

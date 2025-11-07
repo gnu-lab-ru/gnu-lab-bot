@@ -1,0 +1,16 @@
+Дорожная карта
+
+MVP (текущая спецификация)
+- Транспорт: Telegram.
+- Команды: /start, /help, /ping, /version, /eval.
+- Хранение: файл offset.
+- Песочница: guix shell --container; таймаут/ulimit; статический whitelist.
+- Логи: stdout.
+
+M1 (следующий релиз)
+- /doc (docstring), /info (Info), storage: SQLite.
+- Метрики (счётчики в логах → экспорт).
+- Опциональные флаги фич.
+- Подготовка к другим транспортам (Matrix/IRC).
+
+См. архитектурные и безопасные аспекты в spec/01-architecture.org и spec/04-security.org.

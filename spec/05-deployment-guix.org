@@ -1,0 +1,31 @@
+Развёртывание на Guix
+
+Dev окружение
+- guix/shell.scm — manifest (MUST):
+  - Пакеты: emacs, emacs-minimal, coreutils, util-linux, curl, guile, git, bubblewrap, sqlite, make.
+- Запуск:
+  - guix shell -m guix/shell.scm
+  - TELEGRAM_BOT_TOKEN=... ./scripts/run-bot
+
+Пакет
+- guix/package.scm — пакет emacs-gnu-lab (MUST):
+  - build-system: emacs-build-system
+  - inputs: coreutils, util-linux (для scripts), опционально bubblewrap
+  - лицензия: GPL-3.0-or-later
+
+Сервис
+- guix/service.scm — shepherd-сервис (MUST):
+  - Стартует ./scripts/run-bot под пользователем, рестартует при падении.
+  - Логи — stdout.
+
+Guix System
+- guix/system.scm — пример OS-конфига (SHOULD):
+  - Добавляет сервис бота в services.
+
+Guix Deploy
+- guix/machines.scm — описание узла (SHOULD):
+  - Развёртывание: guix deploy guix/machines.scm
+
+Секреты
+- TELEGRAM_BOT_TOKEN из окружения или файла (SHOULD).
+- Не коммитить секреты в git (MUST).

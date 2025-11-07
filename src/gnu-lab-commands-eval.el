@@ -1,0 +1,52 @@
+;;; gnu-lab-commands-eval.el --- Secure eval command  -*- lexical-binding: t; -*-
+
+(load "gnu-lab-effects.el")
+(load "gnu-lab-commands.el")
+(load "gnu-lab-config.el")
+
+(defun gnu-lab--symbol-allowed-p (sym)
+  (memq sym '(quote if cond when unless let let* progn lambda and or
+               + - * / = /= < <= > >= eq eql equal
+               cons car cdr caar cadr cdar cddr list append length nth mapcar
+               vector aref elt
+               format concat substring string-match replace-regexp-in-string
+               numberp stringp symbolp listp null not funcall apply)))
+
+(defun gnu-lab--form-allowed-p (form depth nodes)
+  (cond
+   ((> depth 64) nil)
+   ((> nodes 2000) nil)
+   ((atom form)
+    (cond ((symbolp form) (gnu-lab--symbol-allowed-p form))
+          (t t)))
+   ((consp form)
+    (let* ((head (car form))
+           (ok-head (if (symbolp head) (gnu-lab--symbol-allowed-p head) nil))
+           (next-nodes (+ nodes 1)))
+      (and ok-head
+           (cl-every (lambda (x) (gnu-lab--form-allowed-p x (1+ depth) (1+ next-nodes)))
+                     (cdr form)))))
+   (t nil)))
+
+(defun gnu-lab-safe-elisp-p (expr-string)
+  (let ((read-eval nil))
+    (condition-case _e
+        (let* ((sexp (car (read-from-string expr-string))))
+          (gnu-lab--form-allowed-p sexp 0 0))
+      (error nil))))
+
+(defun gnu-lab-cmd-eval (event args)
+  (let ((expr (string-trim (or args ""))))
+    (if (or (string-empty-p expr) (not (gnu-lab-safe-elisp-p expr)))
+        (list (fx-reply :chat-id (plist-get event :chat-id) :text "Ошибка: E_DENY"))
+      (let* ((limits `(:timeout-sec ,(gnu-lab-config-get 'eval-timeout-sec nil)
+                      :cpu-sec ,(gnu-lab-config-get 'eval-cpu-sec nil)
+                      :mem-mb ,(gnu-lab-config-get 'eval-mem-mb nil)
+                      :out-bytes ,(gnu-lab-config-get 'eval-out-bytes nil))))
+        (list (fx-run-sandbox :expr expr :limits limits))))))
+
+(defun gnu-lab-register-eval-command ()
+  (defcommand "eval" :doc "Безопасный eval в песочнице" :args '((:name expr :type string :required t))
+    :roles '(:user) :handler #'gnu-lab-cmd-eval))
+
+(provide 'gnu-lab-commands-eval)

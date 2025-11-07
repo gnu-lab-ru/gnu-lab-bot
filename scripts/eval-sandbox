@@ -1,0 +1,51 @@
+#!/bin/sh
+# Safe Emacs Lisp evaluator inside Guix container
+set -eu
+
+EXPR="${1:-}"
+TIMEOUT="${EVAL_TIMEOUT_SEC:-2}"
+CPU="${EVAL_CPU_SEC:-2}"
+MEM_MB="${EVAL_MEM_MB:-128}"
+OUT_BYTES="${EVAL_OUT_BYTES:-8192}"
+
+if [ -z "$EXPR" ]; then
+  echo "no expr" >&2
+  exit 64
+fi
+
+TMPDIR="$(mktemp -d)"
+cleanup() { rm -rf "$TMPDIR" || true; }
+trap cleanup EXIT INT TERM
+
+# Assemble batch runner
+RUNNER="$TMPDIR/run.el"
+cat > "$RUNNER" <<'EOF'
+(setq inhibit-startup-screen t)
+(setq load-prefer-newer t)
+(let ((expr (getenv "GNU_LAB_EXPR")))
+  (let ((val (condition-case e
+                 (let ((read-eval nil)) (eval (car (read-from-string expr))))
+               (error (format "ERROR: %s" e)))))
+    (prin1 val)))
+(princ "\n")
+EOF
+
+# Use guix shell container without network; apply ulimits and timeout
+# Note: guix shell --container uses isolated namespaces; no --network specified means network namespace is isolated.
+ULIMITS="ulimit -t $CPU; ulimit -v $((MEM_MB*1024));"
+CMD="env GNU_LAB_EXPR='$EXPR' emacs -Q --batch -l \"$RUNNER\""
+# timeout will kill after TIMEOUT seconds
+guix shell --container emacs-minimal coreutils util-linux -- sh -lc \
+  "$ULIMITS timeout -s KILL ${TIMEOUT}s sh -lc '$CMD' 2>\"$TMPDIR/stderr\" | head -c $OUT_BYTES >\"$TMPDIR/stdout\""
+
+STATUS=$?
+if [ $STATUS -eq 124 ] || [ $STATUS -eq 137 ]; then
+  echo "__TIMEOUT__" > "$TMPDIR/stdout"
+fi
+
+printf "%s\n" "---STDOUT---"
+cat "$TMPDIR/stdout" || true
+printf "%s\n" "---STDERR---"
+cat "$TMPDIR/stderr" || true
+printf "%s\n" "---STATUS---"
+echo "$STATUS"

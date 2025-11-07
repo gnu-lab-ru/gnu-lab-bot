@@ -1,0 +1,19 @@
+Расширяемость
+
+Новые команды
+- Создать модуль src/gnu-lab-commands-foo.el (SHOULD).
+- Зарегистрировать через defcommand в init (MUST).
+- Handler — чистая функция Event→[Effect] (MUST).
+- Обновить тесты (MUST).
+
+Новые транспорты
+- Реализовать нормализацию Update→Event и эффектов→API (MUST).
+- Не менять протокол Event/Effect без bump версии (MUST).
+
+Хранилище
+- Реализовать storage-*.el с тем же интерфейсом (MUST).
+- Подменять через конфиг/feature-flag (SHOULD).
+
+Версионирование
+- PROTOCOL_VERSION semver (MUST).
+- Несовместимые изменения — mjor bump и обновление spec/03 (MUST).
