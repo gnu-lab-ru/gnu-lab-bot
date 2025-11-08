@@ -2,6 +2,7 @@
 
 (require 'subr-x)
 (load "gnu-lab-config.el")
+(load "gnu-lab-logger.el")
 
 (defun gnu-lab-sandbox--parse-output (buf)
   (with-current-buffer buf
@@ -33,11 +34,21 @@
                                              (format "EVAL_OUT_BYTES=%s" out))
                                        process-environment)))
       (unwind-protect
-          (let ((status (call-process "sh" nil buf nil "-lc"
-                                      (format "scripts/eval-sandbox %s" (shell-quote-argument expr)))))
+          (let* ((runner (or (executable-find "gnu-lab-eval-sandbox") "scripts/eval-sandbox"))
+                 (status (call-process "sh" nil buf nil "-lc"
+                                       (format "%s %s" runner (shell-quote-argument expr)))))
             (with-current-buffer buf
               (goto-char (point-min)))
-            (gnu-lab-sandbox--parse-output buf))
+            (let ((res (gnu-lab-sandbox--parse-output buf)))
+              (cond
+               ((plist-get res :timeout-p)
+                (gnu-lab-log-warn `(:msg "sandbox timeout" :code "E_TIMEOUT" :component "sandbox"
+                                          :limits ,limits :status ,(plist-get res :status))))
+               ((not (plist-get res :ok))
+                (gnu-lab-log-error `(:msg "sandbox nonzero status" :code "E_SANDBOX" :component "sandbox"
+                                           :status ,(plist-get res :status)
+                                           :stderr-bytes ,(length (or (plist-get res :stderr) ""))))))
+              res))
         (kill-buffer buf)))))
 
-(provide 'gnu-lab-sandbox)
+(provide 'gnu-l-lab-sandbox)

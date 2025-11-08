@@ -19,22 +19,35 @@
            (status (call-process "sh" nil (current-buffer) nil "-lc" cmd)))
       (delete-file tmp)
       (when (not (eq status 0))
-        (gnu-lab-log-error `(:msg "curl failed" :status ,status :url ,url)))
+        (gnu-lab-log-error `(:msg "curl failed" :code "E_TELEGRAM" :component "telegram" :status ,status :url ,url)))
       (buffer-string))))
 
 (defun gnu-lab-telegram-send (fx)
   (let* ((chat (plist-get fx :chat-id))
          (text (plist-get fx :text))
+         (parse (plist-get fx :parse-mode))
          (url (gnu-lab--tg-api "sendMessage"))
          (truncated (if (> (length text) 4000) (concat (substring text 0 4000) "…") text))
-         (payload `((chat_id . ,chat) (text . ,truncated))))
-    (gnu-lab-telegram--http-post-json url payload)))
+         (payload (append `((chat_id . ,chat) (text . ,truncated))
+                          (when parse `((parse_mode . ,(pcase parse
+                                                         (:markdown "Markdown")
+                                                         (:plain nil)
+                                                         (_ nil)))))))
+         (resp (gnu-lab-telegram--http-post-json url payload)))
+    (condition-case e
+        (let* ((json-object-type 'alist)
+               (json-array-type 'list)
+               (data (json-read-from-string resp)))
+          (unless (alist-get 'ok data)
+            (gnu-lab-log-error `(:msg "telegram sendMessage error" :code "E_TELEGRAM" :component "telegram" :response ,data))))
+      (error (gnu-lab-log-error `(:msg "telegram send parse error" :code "E_TELEGRAM" :component "telegram" :err ,(format "%s" e)))))))
 
 (defun gnu-lab-telegram--normalize-update (upd)
   (let* ((msg (alist-get 'message upd))
          (chat (alist-get 'chat msg))
          (from (alist-get 'from msg)))
     (list :kind :tg/message
+          :update-id (alist-get 'update_id upd)
           :chat-id (alist-get 'id chat)
           :message-id (alist-get 'message_id msg)
           :from-id (alist-get 'id from)
@@ -50,8 +63,12 @@
         (let* ((json-object-type 'alist)
                (json-array-type 'list)
                (data (json-read-from-string resp)))
-          (alist-get 'result data))
-      (error (progn (gnu-lab-log-error `(:msg "telegram parse error" :err ,(format "%s" e)))
+          (if (alist-get 'ok data)
+              (alist-get 'result data)
+            (progn
+              (gnu-lab-log-error `(:msg "telegram getUpdates error" :code "E_TELEGRAM" :component "telegram" :response ,data))
+              nil)))
+      (error (progn (gnu-lab-log-error `(:msg "telegram parse error" :code "E_TELEGRAM" :component "telegram" :err ,(format "%s" e)))
                     nil)))))
 
 (defun gnu-lab-telegram-longpoll-loop (callback)
@@ -59,15 +76,19 @@
         (sleep 0.5))
     (while t
       (condition-case e
-          (let ((updates (gnu-lab-telegram--get-updates offset)))
-            (dolist (u updates)
-              (let ((upd-id (alist-get 'update_id u)))
-                (setq offset (max offset (1+ upd-id)))
-                (gnu-lab-storage-save-offset offset)
-                (let ((ev (gnu-lab-telegram--normalize-update u)))
-                  (funcall callback ev)))))
-        (error (gnu-lab-log-error `(:msg "telegram error" :err ,(format "%s" e)))
-               (sleep-for sleep)
-               (setq sleep (min 8.0 (* 2 sleep))))))))
+          (progn
+            (let ((updates (gnu-lab-telegram--get-updates offset)))
+              (dolist (u updates)
+                (let* ((upd-id (alist-get 'update_id u))
+                       (ev (gnu-lab-telegram--normalize-update u))
+                       (ok (funcall callback ev)))
+                  (when ok
+                    (setq offset (max offset (1+ upd-id)))))))
+            ;; Reset backoff on success.
+            (setq sleep 0.5))
+        (error
+         (gnu-lab-log-error `(:msg "telegram error" :code "E_TELEGRAM" :component "telegram" :err ,(format "%s" e)))
+         (sleep-for sleep)
+         (setq sleep (min 8.0 (* 2 sleep))))))))
 
 (provide 'gnu-lab-telegram)
