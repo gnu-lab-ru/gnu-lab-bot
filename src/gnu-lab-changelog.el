@@ -1,6 +1,7 @@
 ;;; gnu-lab-changelog.el --- Changelog generation via gptel  -*- lexical-binding: t; -*-
 
-;; Dev tool: generate CHANGELOG.md entries from git metadata using gptel.
+;; Dev tool: generate CHANGELOG.md entries from git metadata using gptel,
+;; with deterministic fallback when LLM is unavailable.
 
 (require 'subr-x)
 (require 'cl-lib)
@@ -36,6 +37,16 @@
 (defcustom gnu-lab-changelog-llm-timeout-sec 120
   "Timeout in seconds for waiting LLM response in batch mode."
   :type 'integer
+  :group 'gnu-lab-changelog)
+
+(defcustom gnu-lab-changelog-use-llm t
+  "If non-nil, try using LLM (gptel) to generate the changelog entry."
+  :type 'boolean
+  :group 'gnu-lab-changelog)
+
+(defcustom gnu-lab-changelog-fallback-on-error t
+  "If non-nil, use deterministic fallback generation when LLM fails."
+  :type 'boolean
   :group 'gnu-lab-changelog)
 
 (defvar gnu-lab-changelog--llm-fn nil
@@ -95,7 +106,7 @@ Includes: git log (subject+body), filtered file names and shortstat."
       text)))
 
 (defun gnu-lab-changelog--format-date (lang &optional time)
-  "Format current date for LANG. Russian: \"D месяц YYYY\"."
+  "Format current date for LANG. Russian: \"D месяц YYYY\"; English: ISO."
   (let* ((t0 (or time (current-time)))
          (dt (decode-time t0))
          (year (nth 5 dt))
@@ -123,7 +134,7 @@ Includes: git log (subject+body), filtered file names and shortstat."
         "### Docs\n- ...\n"
         "### Security\n- ...\n\n"
         "Правила:\n"
-        "- Пиши кратко, объединяй однотипные изменения; используй Conventional Commits.\n"
+        "- Пиши кратко, объединяй однотипные изменения.\n"
         "- Русский язык, прошедшее время.\n"
         "- Если раздел пуст — опусти его.\n"
         "- Выведи только секцию версии, без преамбулы и постскриптума.\n\n"
@@ -140,7 +151,7 @@ Includes: git log (subject+body), filtered file names and shortstat."
       "### Removed\n- ...\n"
       "### Docs\n- ...\n"
       "### Security\n- ...\n\n"
-      "Rules: concise, use Conventional Commits mapping, merge similar changes, omit empty sections, output only the version section.\n\n"
+      "Rules: concise, merge similar changes, omit empty sections, output only the version section.\n\n"
       "Git context (no diffs):\n%s")
      version date version date context)))
 
@@ -170,6 +181,54 @@ Includes: git log (subject+body), filtered file names and shortstat."
             result))
       (error (error "gptel not configured or call failed")))))
 
+(defun gnu-lab-changelog--section-title (_lang section)
+  "Return section title for SECTION symbol (Keep a Changelog English headers)."
+  (pcase section
+    (:added "Added")
+    (:changed "Changed")
+    (:fixed "Fixed")
+    (:removed "Removed")
+    (:docs "Docs")
+    (:security "Security")
+    (_ "Changed")))
+
+(defun gnu-lab-changelog--categorize-subject (s)
+  "Categorize commit subject S into a section symbol."
+  (let ((ls (downcase s)))
+    (cond
+     ((string-match-p "^feat\\b" ls) :added)
+     ((string-match-p "^fix\\b" ls) :fixed)
+     ((string-match-p "^docs?\\b" ls) :docs)
+     ((string-match-p "^perf\\b" ls) :changed)
+     ((string-match-p "^refactor\\b" ls) :changed)
+     ((string-match-p "^revert\\b" ls) :changed)
+     ((string-match-p "^remove\\b\\|^delete\\b\\|\\bdrop\\b" ls) :removed)
+     ((string-match-p "\\bcve\\b\\|\\bvuln\\b\\|\\bsecurity\\b" ls) :security)
+     ((string-match-p "^build\\b\\|^ci\\b\\|^chore\\b" ls) :changed)
+     ((string-match-p "^test\\b" ls) :changed)
+     (t :changed))))
+
+(defun gnu-lab-changelog--fallback-entry (version date from to lang)
+  "Generate deterministic entry using commit subjects only."
+  (let* ((range (if (string-empty-p from) to (format "%s..%s" from to)))
+         (subjects-raw (or (gnu-lab-changelog--call-git "log" "--no-merges" "--pretty=format:%s" range) ""))
+         (subjects (split-string subjects-raw "\n" t))
+         (buckets (make-hash-table :test 'eq)))
+    (dolist (k '(:added :changed :fixed :removed :docs :security))
+      (puthash k '() buckets))
+    (dolist (s subjects)
+      (let* ((sec (gnu-lab-changelog--categorize-subject s))
+             (clean (string-trim s)))
+        (puthash sec (cl-adjoin clean (gethash sec buckets) :test #'string=) buckets)))
+    (let ((lines (list (format "## [%s] — %s" version date))))
+      (dolist (sec '(:added :changed :fixed :removed :docs :security))
+        (let* ((items (cl-remove-if (lambda (x) (string-empty-p (string-trim x)))
+                                    (gethash sec buckets))))
+          (when items
+            (push (format "### %s" (gnu-lab-changelog--section-title lang sec)) lines)
+            (dolist (it items) (push (concat "- " it) lines)))))
+      (mapconcat #'identity (nreverse lines) "\n"))))
+
 (defun gnu-lab-changelog--insert-at-top (file entry)
   "Insert ENTRY at the top of FILE, creating file if missing."
   (let ((exists (file-exists-p file)))
@@ -187,7 +246,11 @@ FROM-TAG and TO-TAG define git range; if nil, last tag to HEAD.
 VERSION defaults to version inferred from TO-TAG (vX.Y.Z -> X.Y.Z) or \"Unreleased\".
 DATE defaults: RU -> \"D месяц YYYY\"; EN -> ISO \"YYYY-MM-DD\".
 OUTFILE defaults to `gnu-lab-changelog-file'.
-LANG defaults to `gnu-lab-changelog-language'."
+LANG defaults to `gnu-lab-changelog-language'.
+
+Environment overrides:
+- CHANGELOG_NO_LLM=1 disables LLM entirely (uses fallback).
+- CHANGELOG_FALLBACK_ON_ERROR=0 prevents fallback if LLM fails."
   (interactive)
   (cl-destructuring-bind (from to) (gnu-lab-changelog--range from-tag to-tag)
     (let* ((lang (or lang gnu-lab-changelog-language))
@@ -195,26 +258,42 @@ LANG defaults to `gnu-lab-changelog-language'."
                     (gnu-lab-changelog--auto-version
                      (or to-tag (gnu-lab-changelog--detect-current-tag)))))
            (date (or date (gnu-lab-changelog--format-date lang)))
-           (ctx (gnu-lab-changelog--collect-context from to))
-           (prompt (gnu-lab-changelog--prompt ver date ctx lang))
-           (entry (gnu-lab-changelog--llm prompt))
-           (file (or outfile gnu-lab-changelog-file)))
-      (unless (and entry (string-match-p "^## \\[" entry))
-        (error "LLM did not return a valid changelog section"))
-      (gnu-lab-changelog--insert-at-top file entry)
-      (message "Changelog updated: %s" file))))
+           (no-llm (string= (or (getenv "CHANGELOG_NO_LLM") "") "1"))
+           (fallback-enabled (not (string= (or (getenv "CHANGELOG_FALLBACK_ON_ERROR") "") "0")))
+           (use-llm (and gnu-lab-changelog-use-llm (not no-llm)))
+           (entry
+            (cond
+             (use-llm
+              (condition-case err
+                  (let* ((ctx (gnu-lab-changelog--collect-context from to))
+                         (prompt (gnu-lab-changelog--prompt ver date ctx lang))
+                         (ans (gnu-lab-changelog--llm prompt)))
+                    (if (and ans (string-match-p "^## \\[" ans))
+                        ans
+                      (if fallback-enabled
+                          (gnu-lab-changelog--fallback-entry ver date from to lang)
+                        (error "LLM returned invalid section"))))
+                (error
+                 (if fallback-enabled
+                     (gnu-lab-changelog--fallback-entry ver date from to lang)
+                   (signal (car err) (cdr err))))))
+             (t
+              (gnu-lab-changelog--fallback-entry ver date from to lang)))))
+      (gnu-lab-changelog--insert-at-top (or outfile gnu-lab-changelog-file) entry)
+      (message "Changelog updated: %s" (or outfile gnu-lab-changelog-file)))))
 
 ;;;###autoload
 (defun gnu-lab-changelog-batch ()
   "Batch entrypoint.
 
-Reads FROM_TAG, TO_TAG, VERSION, OUTFILE, LANG (ru|en) from environment."
+Reads FROM_TAG, TO_TAG, VERSION, OUTFILE, LANG (ru|en) from environment.
+Honors CHANGELOG_NO_LLM and CHANGELOG_FALLBACK_ON_ERROR."
   (let* ((from (getenv "FROM_TAG"))
          (to (getenv "TO_TAG"))
          (version (getenv "VERSION"))
          (outfile (or (getenv "OUTFILE") gnu-lab-changelog-file))
          (lang (pcase (downcase (or (getenv "LANG") (symbol-name gnu-lab-changelog-language)))
-                 ((or "ru" "ru_ru" "ru-ru") 'ru)
+                 ((or "ru" "ru_ru" "ru-ru" "ru_ru.utf-8" "ru_ru.utf8" "ru-ru.utf-8" "ru-ru.utf8") 'ru)
                  (_ 'en))))
     (gnu-lab-changelog-generate-entry from to version nil outfile lang)))
 

@@ -51,4 +51,4 @@
               res))
         (kill-buffer buf)))))
 
-(provide 'gnu-l-lab-sandbox)
+(provide 'gnu-lab-sandbox)

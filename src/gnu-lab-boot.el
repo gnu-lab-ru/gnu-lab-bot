@@ -2,8 +2,6 @@
 
 ;; This file is the entry script for running the bot in batch mode.
 (require 'subr-x)
-(require 'subr-x)
-(require 'subr-x)
 
 (load (expand-file-name "gnu-lab-config.el" (file-name-directory load-file-name)))
 (load (expand-file-name "gnu-lab-logger.el" (file-name-directory load-file-name)))

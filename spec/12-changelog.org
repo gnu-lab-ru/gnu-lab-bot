@@ -37,7 +37,7 @@
   - Аргументы (опционально): FROM_TAG TO_TAG VERSION DATE OUTFILE LANG.
 - CLI:
   - scripts/changelog
-  - Переменные окружения: FROM_TAG, TO_TAG, VERSION, OUTFILE, LANG (ru|en).
+  - Переменные окружения: FROM_TAG, TO_TAG, VERSION, OUTFILE, LANG (ru|en), CHANGELOG_NO_LLM (1 — отключить LLM), CHANGELOG_FALLBACK_ON_ERROR (0 — не использовать fallback при ошибке LLM).
 - Make:
   - make changelog (эквивалент scripts/changelog).
 

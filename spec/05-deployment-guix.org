@@ -15,8 +15,9 @@ Dev окружение
 
 Сервис
 - guix/service.scm — shepherd-сервис (MUST):
-  - Стартует ./scripts/run-bot под пользователем, рестартует при падении.
+  - Стартует ./scripts/run-bот под пользователем, рестартует при падении.
   - Логи — stdout.
+  - Передаёт секрет через переменную окружения TELEGRAM_BOT_TOKEN_FILE; скрипт запуска читает файл и устанавливает TELEGRAM_BOT_TOKEN на старте.
 
 Guix System
 - guix/system.scm — пример OS-конфига (SHOULD):

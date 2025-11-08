@@ -31,6 +31,7 @@
 Rate limits
 - Дефолты (SHOULD): per-user 5/мин, per-chat 20/мин, window-sec 60.
 - Нарушения → E_RATE.
+- Интерпретация: см. DSL команд и :rate-limit в spec/03-protocols.org; реализация — src/gnu-lab-ratelimit.el и проверка в src/gnu-lab-commands.el.
 
 Логирование и ошибки
 - Коды (MUST): E_PARSE, E_DENY, E_TIMEOUT, E_OOM, E_SANDBOX, E_TELEGRAM, E_RATE, E_EFFECT_UNKNOWN, E_POLICY, E_INTERNAL.

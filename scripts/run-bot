@@ -1,8 +1,14 @@
 #!/bin/sh
 set -eu
 
-if [ "${TELEGRAM_BOT_TOKEN:-}" = "" ]; then
-  echo "[warn] TELEGRAM_BOT_TOKEN is not set. Transport will not start. Running dry boot..."
+# If TELEGRAM_BOT_TOKEN is not set, try to read it from TELEGRAM_BOT_TOKEN_FILE.
+if [ -z "${TELEGRAM_BOT_TOKEN:-}" ]; then
+  if [ -n "${TELEGRAM_BOT_TOKEN_FILE:-}" ] && [ -r "${TELEGRAM_BOT_TOKEN_FILE}" ]; then
+    TELEGRAM_BOT_TOKEN="$(cat "${TELEGRAM_BOT_TOKEN_FILE}")"
+    export TELEGRAM_BOT_TOKEN
+  else
+    echo "[warn] TELEGRAM_BOT_TOKEN is not set. Transport will not start. Running dry boot..."
+  fi
 fi
 
 exec emacs -Q --script src/gnu-lab-boot.el

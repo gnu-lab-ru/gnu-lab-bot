@@ -15,12 +15,10 @@
    (documentation "Мастерская Emacs bot service")
    (start #~(make-forkexec-constructor
              (list
-              ;; env to inject token; run packaged launcher from emacs-gnu-lab
-              #$(file-append (canonical-package (car (list (specification->package "coreutils")))) "/bin/env")
-              (string-append "TELEGRAM_BOT_TOKEN=$(cat " #$token-file ")")
+              ;; Run packaged launcher from emacs-gnu-lab; token is provided via env file.
               #$(file-append (specification->package "emacs-gnu-lab") "/bin/gnu-lab-run-bot"))
-             ;; No relative directory from store; run directly from package output.
-             ))
+             #:environment-variables
+             (list (string-append "TELEGRAM_BOT_TOKEN_FILE=" #$token-file))))
    (stop #~(make-kill-destructor))))
 
 (define-public gnu-lab-bot-service-type
