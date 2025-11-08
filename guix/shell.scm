@@ -12,4 +12,5 @@
         "bubblewrap"
         "sqlite"
         "make"
-        "emacs-package-lint")))
+        "emacs-package-lint"
+        "emacs-gptel")))
