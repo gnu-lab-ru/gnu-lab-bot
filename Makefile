@@ -1,7 +1,7 @@
 # Minimal task runner for build/lint/test under Guix
 EMACS ?= emacs
 
-.PHONY: help env build lint test ci fmt run test-integ
+.PHONY: help env build lint test ci fmt run test-integ changelog
 
 help:
 	@echo "Targets:"
@@ -13,6 +13,7 @@ help:
 	@echo "  fmt        - check Guix style (dry-run)"
 	@echo "  run        - run the bot (needs TELEGRAM_BOT_TOKEN)"
 	@echo "  test-integ - quick sandbox smoke test"
+	@echo "  changelog  - generate CHANGELOG.md via gptel"
 
 env:
 	@echo "== guix describe ==" || true
@@ -51,3 +52,6 @@ run:
 test-integ:
 	@echo "== sandbox smoke =="
 	@./scripts/eval-sandbox "(+ 1 2)" | sed -n '1,120p'
+
+changelog:
+	@./scripts/changelog
