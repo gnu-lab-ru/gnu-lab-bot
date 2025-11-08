@@ -52,6 +52,30 @@
     (setq s (concat s ")"))
     (should-not (gnu-lab-safe-elisp-p s))))
 
+(ert-deftest eval-linter-denies-dynamic-callee-if ()
+  ;; funcall with non-symbol callee must be denied.
+  (should-not (gnu-lab-safe-elisp-p "(funcall (if t '+ 'call-process) 1 2)")))
+
+(ert-deftest eval-linter-denies-symbol-function-indirection ()
+  ;; symbol-function is not whitelisted; also callee is non-symbol at callsite.
+  (should-not (gnu-lab-safe-elisp-p "(funcall (symbol-function 'call-process) \"ls\")")))
+
+(ert-deftest eval-linter-denies-deep-ast ()
+  ;; Build a nested form exceeding depth limit (e.g., 70 levels of (list ...)).
+  (let* ((n 70)
+         (s "0"))
+    (dotimes (_ n)
+      (setq s (concat "(list " s ")")))
+    (should-not (gnu-lab-safe-elisp-p s))))
+
+(ert-deftest eval-linter-denies-large-ast ()
+  ;; Build a very large list of constants to exceed node limit.
+  (let* ((n 2100)
+         (s "(list"))
+    (dotimes (_ n) (setq s (concat s " 1")))
+    (setq s (concat s ")"))
+    (should-not (gnu-lab-safe-elisp-p s))))
+
 (ert-deftest eval-linter-denies-funcall-to-forbidden ()
   (should-not (gnu-lab-safe-elisp-p "(funcall 'call-process \"ls\")")))
 
