@@ -1,5 +1,6 @@
 ;;; gnu-lab-commands-basic.el --- Basic commands  -*- lexical-binding: t; -*-
 
+(require 'cl-lib)
 (load "gnu-lab-effects.el")
 (load "gnu-lab-commands.el")
 (load "gnu-lab-config.el")
@@ -11,12 +12,15 @@
   (gnu-lab--reply event "Привет! Доступные команды: /help, /ping, /version, /eval EXPR"))
 
 (defun gnu-lab-cmd-help (event _args)
-  (gnu-lab--reply event "Команды:
-/start — приветствие
-/help — список команд
-/ping — pong
-/version — версии
-/eval EXPR — безопасный eval"))
+  (let (rows)
+    (maphash
+     (lambda (k v)
+       (let* ((doc (or (plist-get v :doc) ""))
+              (line (format "%s — %s" k doc)))
+         (push line rows)))
+     gnu-lab--commands)
+    (setq rows (sort rows #'string-lessp))
+    (gnu-lab--reply event (concat "Команды:\n" (mapconcat #'identity rows "\n")))))
 
 (defun gnu-lab-cmd-ping (event _args)
   (gnu-lab--reply event "pong"))
