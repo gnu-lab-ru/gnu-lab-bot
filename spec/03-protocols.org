@@ -5,6 +5,7 @@
 
 Event (plist)
 - :kind :tg/message (MVP)
+- :update-id int (MUST)
 - :chat-id int (MUST)
 - :message-id int (MUST)
 - :from-id int (MUST)
@@ -30,6 +31,7 @@ Effect (plist, одно действие)
 - :log (MUST)
   - :level :info|:warn|:error (MUST)
   - :data plist (MUST)
+
 
 Командный DSL
 - defcommand name :doc :args :roles :rate-limit :handler (MUST).
