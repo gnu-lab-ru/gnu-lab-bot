@@ -1,0 +1,86 @@
+#+title: Генератор CHANGELOG (gptel)
+#+author: Мастерская Emacs
+#+language: ru
+
+Цель
+- Автоматизировать ведение CHANGELOG.md: формировать запись от предыдущей версии до текущей по данным git с помощью LLM через пакет gptel.
+- Простая команда из Emacs и эквивалент из консоли (Batch).
+
+Требования (MUST)
+- Формат: Keep a Changelog, заголовок вида: “## [X.Y.Z] — D месяц YYYY” (русская дата, например: “8 ноября 2025”).
+- Секции: Added, Changed, Fixed, Removed, Docs, Security. Пустые секции опускать.
+- Язык: русский по умолчанию.
+- Диапазон: по умолчанию last tag → HEAD. Возможность указать вручную FROM_TAG/TO_TAG.
+- Версия: по умолчанию берётся из TO_TAG (vX.Y.Z → X.Y.Z). Если тег не найден — “Unreleased”.
+- Источник данных для LLM: только метаданные
+  - git log (subject+body), git diff --name-only (после фильтра), git diff --shortstat.
+  - Без передачи диффов кода (патчей).
+  - Лимит размера контекста (байты), усечение при превышении.
+- Приватность: фильтровать служебные/сгенерированные пути (конфигурируемый список).
+- Повторяемость: точка входа в batch-режиме; возможность подменить вызов LLM (стаб для тестов/CI).
+- Не менять Event/Effect протокол (dev-инструмент).
+
+Должно быть (SHOULD)
+- CLI обёртка scripts/changelog, цель Makefile: make changelog.
+- Вывод вставляется в начало CHANGELOG.md; файл создаётся при отсутствии.
+- Guix dev-окружение включает emacs-gptel.
+- Тесты (ERT): детекция диапазона по умолчанию, вставка секции, стаб LLM.
+
+Можно (MAY)
+- Локаль/язык переключаемы (ru|en).
+- .changelogignore для путей (будущее).
+- Параметры модели/температуры через переменные окружения gptel (будущее).
+
+Интерфейсы
+- Emacs:
+  - M-x gnu-lab-changelog-generate-entry
+  - Аргументы (опционально): FROM_TAG TO_TAG VERSION DATE OUTFILE LANG.
+- CLI:
+  - scripts/changelog
+  - Переменные окружения: FROM_TAG, TO_TAG, VERSION, OUTFILE, LANG (ru|en).
+- Make:
+  - make changelog (эквивалент scripts/changelog).
+
+Формирование запроса (prompt)
+- Инструкции модели на русском, строгий Markdown, заголовок формата “## [X.Y.Z] — D месяц YYYY”.
+- Классификация по Conventional Commits приветствуется: feat→Added, fix→Fixed, docs→Docs, chore/refactor→Changed и т.п.
+- Объединять однотипные изменения, избегать лишних подробностей, не выводить пустые секции.
+- Вывести только секцию релиза (без преамбулы/эпилога).
+
+Ограничения приватности
+- В LLM не попадает содержимое изменённых файлов.
+- Фильтрация путей по regex-списку (настройка): например state/, build/, dist/, .elc, .github/, и т.п.
+- Контекст усечён до N байт (настройка), чтобы ограничить утечки.
+
+Параметры (дефолты)
+- gnu-lab-changelog-file: "CHANGELOG.md"
+- gnu-lab-changelog-language: ru
+- gnu-lab-changelog-max-context-bytes: 200000
+- gnu-lab-changelog-ignore-paths: список regex (см. модуль)
+- gnu-lab-changelog-llm-timeout-sec: 120
+
+Dev-окружение и зависимости
+- gptel (Emacs) обязателен для реального вызова модели.
+- Ключ/модель/провайдер настраиваются стандартным образом для gptel (через init или переменные окружения).
+- В Guix manifest (guix/shell.scm) добавить emacs-gptel.
+
+Тестирование (ERT)
+- Диапазон по умолчанию (при отсутствии тега от начала истории до HEAD).
+- Вставка секции в начало CHANGELOG.md.
+- Генерация с заглушкой LLM (gnu-lab-changelog--llm-fn).
+
+Инструкции
+- Настроить gptel (пример):
+  - export OPENAI_API_KEY=...
+  - В Emacs установить backend/model (или использовать локальный провайдер).
+- Генерация:
+  - Emacs: M-x gnu-lab-changelog-generate-entry
+  - CLI: ./scripts/changelog
+  - Примеры:
+    - FROM_TAG=v0.1.0 TO_TAG=HEAD VERSION=0.2.0 ./scripts/changelog
+    - LANG=ru OUTFILE=CHANGELOG.md ./scripts/changelog
+- Make: make changelog
+
+Безопасность и совместимость
+- Модуль — dev-инструмент; не меняет протоколы, не добавляет Effects/Events.
+- Соответствует spec/08-style-llm.org: код с тестами, проходит make lint и make test (при наличии gptel в окружении).

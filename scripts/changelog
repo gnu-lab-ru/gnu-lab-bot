@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+# Generate CHANGELOG.md via gptel using default range last tag .. HEAD.
+# Environment variables:
+#   FROM_TAG  - optional start tag (e.g., v0.1.0)
+#   TO_TAG    - optional end (e.g., HEAD or a tag)
+#   VERSION   - override version (X.Y.Z)
+#   OUTFILE   - output file (default: CHANGELOG.md)
+#   LANG      - ru|en (default: ru)
+exec emacs -Q --batch -L src -l src/gnu-lab-changelog.el -f gnu-lab-changelog-batch
