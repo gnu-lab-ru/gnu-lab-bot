@@ -31,11 +31,11 @@ cat > "$RUNNER" <<'EOF'
 EOF
 
 # Use guix shell container without network; apply ulimits and timeout
-# Note: guix shell --container uses isolated namespaces; no --network specified means network namespace is isolated.
+# Note: explicitly disable network with --no-network for stronger isolation.
 ULIMITS="ulimit -t $CPU; ulimit -v $((MEM_MB*1024));"
 CMD="env GNU_LAB_EXPR='$EXPR' emacs -Q --batch -l \"$RUNNER\""
 # timeout will kill after TIMEOUT seconds
-guix shell --container emacs-minimal coreutils util-linux -- sh -lc \
+guix shell --container --no-network emacs-minimal coreutils util-linux -- sh -lc \
   "$ULIMITS timeout -s KILL ${TIMEOUT}s sh -lc '$CMD' 2>\"$TMPDIR/stderr\" | head -c $OUT_BYTES >\"$TMPDIR/stdout\""
 
 STATUS=$?

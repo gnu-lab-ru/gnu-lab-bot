@@ -7,4 +7,6 @@ set -eu
 #   VERSION   - override version (X.Y.Z)
 #   OUTFILE   - output file (default: CHANGELOG.md)
 #   LANG      - ru|en (default: ru)
+#   CHANGELOG_NO_LLM=1            - force deterministic fallback (no LLM)
+#   CHANGELOG_FALLBACK_ON_ERROR=0 - disable fallback if LLM fails (error out)
 exec emacs -Q --batch -L src -l src/gnu-lab-changelog.el -f gnu-lab-changelog-batch

@@ -1,4 +1,8 @@
 ## [Unreleased] — 9 ноября 2025
+### Docs
+- docs: update changelog with recent feature additions and improvements
+
+## [Unreleased] — 9 ноября 2025
 ### Added
 - Initial commit
 - feat: add MVP Telegram bot with secure Emacs Lisp eval and Guix deployment
