@@ -16,7 +16,7 @@
   (when (and (stringp text) (string-prefix-p "/" text))
     (let* ((parts (split-string text "[ \n]" t))
            (token (car parts))
-           (at-pos (and token (string-match-p "@" token)))
+           (at-pos (and token (string-match "@" token))) ; index or nil
            (name (if at-pos (substring token 0 at-pos) token))
            (args (string-trim (substring text (min (length text) (length token))))))
       (list name args))))

@@ -66,7 +66,14 @@
                               :expr expr :limits limits)))))))
 
 (defun gnu-lab-register-eval-command ()
-  (defcommand "eval" :doc "Безопасный eval в песочнице" :args '((:name expr :type string :required t))
-    :roles '(:user) :handler #'gnu-lab-cmd-eval))
+  (let* ((per-user (or (gnu-lab-config-get 'eval-rate-user nil) 5))
+         (per-chat (or (gnu-lab-config-get 'eval-rate-chat nil) 20))
+         (window   (or (gnu-lab-config-get 'rate-window-sec nil) 60)))
+    (defcommand "eval"
+      :doc "Безопасный eval в песочнице"
+      :args '((:name expr :type string :required t))
+      :roles '(:user)
+      :rate-limit `(:per-user ,per-user :per-chat ,per-chat :window-sec ,window)
+      :handler #'gnu-lab-cmd-eval)))
 
 (provide 'gnu-lab-commands-eval)
