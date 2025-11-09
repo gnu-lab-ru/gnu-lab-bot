@@ -1,12 +1,12 @@
 ## [Unreleased] — 9 ноября 2025
 ### Added
+- Initial commit
 - feat: add MVP Telegram bot with secure Emacs Lisp eval and Guix deployment
 - feat: add Guix-based build, lint, test infrastructure and enhance command parsing
 - feat: add changelog generator using gptel and in-memory rate limiting
 - feat: improve Emacs-gnu-lab packaging and service setup
 - feat: improve bot token handling and add deterministic changelog fallback
 ### Changed
-- Initial commit
 - chore: add changelog target to Makefile for generating CHANGELOG.md
 - refactor: improve command handling and eval validation
 - refactor: improve error handling and add post-success effect support
