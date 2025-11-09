@@ -46,6 +46,7 @@ Effect (plist, одно действие)
 - Handler MUST быть pure: Event → [Effect].
 - Любой Effect MUST валидироваться перед исполнением.
 - Неизвестный тип эффекта → ошибка E_EFFECT_UNKNOWN.
+- Нарушение :rate-limit → два эффекта (MUST): (1) fx-log с :level :warn и :data содержащим :code "E_RATE"; (2) fx-reply с кратким текстом "Ошибка: E_RATE". Подробности лимитов и кодов см. spec/04-security.org.
 
 Парсинг команд
 - Сообщение: "/name[@bot] [args...]".
